@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DSP Sampling Laboratory — Sampling Theorem & Aliasing Effects</title>
+  <meta name="description" content="Professional interactive laboratory for demonstrating and analyzing the Sampling Theorem, Nyquist Criterion, Aliasing, Frequency Folding, and Signal Reconstruction in Discrete-Time Signal Processing." />
+  <meta name="theme-color" content="#060914" />
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Plotly.js CDN (GPU-accelerated, publication-quality) -->
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     HEADER
+═══════════════════════════════════════════════════════════ -->
+<header id="app-header">
+  <a class="header-logo" href="#hero">
+    <div class="header-logo-icon">⚡</div>
+    <div>
+      <div class="header-title">DSP Laboratory</div>
+      <div class="header-subtitle">Sampling Theorem & Aliasing</div>
+    </div>
+  </a>
+  <div class="header-spacer"></div>
+  <span class="header-badge badge-live">Live Engine</span>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LIVE DIAGNOSTICS BAR
+═══════════════════════════════════════════════════════════ -->
+<div id="diagnostics-bar">
+  <div class="diag-item">
+    <span class="diag-label">Sampling Rate</span>
+    <span class="diag-value mono" id="diag-fs">20.0</span>
+  </div>
+  <div class="diag-separator"></div>
+  <div class="diag-item">
+    <span class="diag-label">Signal Freq</span>
+    <span class="diag-value mono" id="diag-fmax">5.0</span>
+  </div>
+  <div class="diag-separator"></div>
+  <div class="diag-item">
+    <span class="diag-label">Nyquist Rate</span>
+    <span class="diag-value mono" id="diag-nyquist-rate">10.0</span>
+  </div>
+  <div class="diag-separator"></div>
+  <div class="diag-item">
+    <span class="diag-label">Nyquist Freq</span>
+    <span class="diag-value mono" id="diag-nyquist-freq">10.0</span>
+  </div>
+  <div class="diag-separator"></div>
+  <div class="diag-item">
+    <span class="diag-label">Aliased Freq</span>
+    <span class="diag-value mono ok" id="diag-alias-freq">5.0</span>
+  </div>
+  <div class="diag-separator"></div>
+  <div class="diag-item">
+    <span class="diag-label">Status</span>
+    <span class="diag-status-chip chip-ok" id="diag-status">NOMINAL</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SIDEBAR NAVIGATION
+═══════════════════════════════════════════════════════════ -->
+<nav id="sidebar">
+  <div class="sidebar-section-label">Laboratory</div>
+  <a class="nav-item active" data-section="hero" href="#hero">
+    <div class="nav-item-icon">🔬</div>
+    <span class="nav-item-text">Overview</span>
+  </a>
+
+  <div class="sidebar-section-label">Experiments</div>
+  <a class="nav-item" data-section="exp1" href="#exp1">
+    <div class="nav-item-icon">〜</div>
+    <span class="nav-item-text">Signal Generation</span>
+    <span class="nav-item-num">01</span>
+  </a>
+  <a class="nav-item" data-section="exp2" href="#exp2">
+    <div class="nav-item-icon">✓</div>
+    <span class="nav-item-text">Above Nyquist</span>
+    <span class="nav-item-num">02</span>
+  </a>
+  <a class="nav-item" data-section="exp3" href="#exp3">
+    <div class="nav-item-icon">⚡</div>
+    <span class="nav-item-text">Below Nyquist</span>
+    <span class="nav-item-num">03</span>
+  </a>
+  <a class="nav-item" data-section="exp4" href="#exp4">
+    <div class="nav-item-icon">∿</div>
+    <span class="nav-item-text">Spectral Replicas</span>
+    <span class="nav-item-num">04</span>
+  </a>
+  <a class="nav-item" data-section="exp5" href="#exp5">
+    <div class="nav-item-icon">⟳</div>
+    <span class="nav-item-text">Sinc Reconstruction</span>
+    <span class="nav-item-num">05</span>
+  </a>
+  <a class="nav-item" data-section="exp6" href="#exp6">
+    <div class="nav-item-icon">📈</div>
+    <span class="nav-item-text">Error Sweep</span>
+    <span class="nav-item-num">06</span>
+  </a>
+  <a class="nav-item" data-section="exp7" href="#exp7">
+    <div class="nav-item-icon">♬</div>
+    <span class="nav-item-text">Multi-Tone Aliasing</span>
+    <span class="nav-item-num">07</span>
+  </a>
+  <a class="nav-item" data-section="exp8" href="#exp8">
+    <div class="nav-item-icon">⊕</div>
+    <span class="nav-item-text">Rate Comparison</span>
+    <span class="nav-item-num">08</span>
+  </a>
+  <a class="nav-item" data-section="exp9" href="#exp9">
+    <div class="nav-item-icon">⇌</div>
+    <span class="nav-item-text">Frequency Folding</span>
+    <span class="nav-item-num">09</span>
+  </a>
+  <a class="nav-item" data-section="exp10" href="#exp10">
+    <div class="nav-item-icon">🛡</div>
+    <span class="nav-item-text">Anti-Aliasing Filter</span>
+    <span class="nav-item-num">10</span>
+  </a>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN CONTENT
+═══════════════════════════════════════════════════════════ -->
+<main id="main-content">
+
+  <!-- ─── HERO ─── -->
+  <section id="hero" data-section-id="hero">
+    <div class="hero-eyebrow">DSP Engineering Laboratory</div>
+    <h1 class="hero-title">
+      <span class="accent-cyan">Sampling Theorem</span><br>
+      &amp; <span class="accent-violet">Aliasing Effects</span>
+    </h1>
+    <p class="hero-subtitle">
+      Professional interactive laboratory for demonstrating and analyzing Nyquist criterion,
+      aliasing, frequency folding, and signal reconstruction in discrete-time signal processing.
+    </p>
+
+    <!-- Live animated canvas -->
+    <div id="hero-canvas-container">
+      <canvas id="hero-canvas"></canvas>
+    </div>
+
+    <!-- Live mini charts -->
+    <div class="hero-mini-charts">
+      <div class="mini-chart-card">
+        <div class="mini-chart-title">Continuous Signal x(t)</div>
+        <div id="mini-chart-1" class="mini-chart-plot"></div>
+      </div>
+      <div class="mini-chart-card">
+        <div class="mini-chart-title">Sampled Signal x[n] @ fs=14Hz</div>
+        <div id="mini-chart-2" class="mini-chart-plot"></div>
+      </div>
+      <div class="mini-chart-card">
+        <div class="mini-chart-title">FFT Magnitude Spectrum |X(f)|</div>
+        <div id="mini-chart-3" class="mini-chart-plot"></div>
+      </div>
+    </div>
+
+    <button class="hero-cta" id="hero-cta">
+      Enter Laboratory &nbsp;→
+    </button>
+  </section>
+
+  <!-- ─── EXPERIMENT 1: Continuous Signal ─── -->
+  <section id="exp1" class="experiment-section" data-section-id="exp1">
+    <div class="section-header reveal">
+      <span class="section-number">EXP 01</span>
+      <div>
+        <h2 class="section-title">Continuous Signal Generation</h2>
+        <p class="section-description">
+          Generate a continuous-time signal with configurable frequency, amplitude, phase, and waveform.
+          This is the analog signal <em>x(t)</em> that will be sampled in subsequent experiments.
+        </p>
+      </div>
+    </div>
+
+    <div class="experiment-body reveal">
+      <!-- Controls -->
+      <div class="glass-card controls-panel">
+        <div class="glass-card-title">Signal Parameters</div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Frequency</span>
+            <span class="control-value"><span id="e1-freq-val">5.0</span> Hz</span>
+          </div>
+          <input type="range" id="e1-freq" min="1" max="50" step="0.5" value="5" />
+          <div class="slider-markers"><span class="slider-marker">1</span><span class="slider-marker">50 Hz</span></div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Amplitude</span>
+            <span class="control-value"><span id="e1-amplitude-val">1.0</span></span>
+          </div>
+          <input type="range" id="e1-amplitude" min="0.1" max="3" step="0.1" value="1" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Phase Offset</span>
+            <span class="control-value"><span id="e1-phase-val">0</span>°</span>
+          </div>
+          <input type="range" id="e1-phase" min="0" max="360" step="5" value="0" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label"><span>Waveform</span></div>
+          <select class="dsp-select" id="e1-waveform">
+            <option value="sine">Sine</option>
+            <option value="square">Square</option>
+            <option value="triangle">Triangle</option>
+            <option value="sawtooth">Sawtooth</option>
+          </select>
+        </div>
+
+        <div class="math-display">
+          <span class="eq-label">Time-Domain Representation</span>
+          <span class="eq">x(t) = A · sin(2πft + φ)</span>
+        </div>
+      </div>
+
+      <!-- Chart -->
+      <div class="chart-container">
+        <div class="chart-title">Continuous-Time Signal x(t)</div>
+        <div id="chart-e1" class="chart-plot" style="height:340px;"></div>
+      </div>
+
+      <!-- Metrics -->
+      <div class="metrics-panel">
+        <div class="metric-card accent-cyan">
+          <div class="metric-label">Frequency</div>
+          <div class="metric-value"><span id="e1-freq-out">5.000</span><span class="metric-unit">Hz</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Period</div>
+          <div class="metric-value"><span id="e1-period">200.0</span><span class="metric-unit">ms</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Amplitude</div>
+          <div class="metric-value"><span id="e1-amplitude-out">1.000</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── EXPERIMENT 2: Above Nyquist ─── -->
+  <section id="exp2" class="experiment-section" data-section-id="exp2">
+    <div class="section-header reveal">
+      <span class="section-number">EXP 02</span>
+      <div>
+        <h2 class="section-title">Sampling Above Nyquist Rate</h2>
+        <p class="section-description">
+          When sampling frequency fs &gt; 2f<sub>max</sub>, the Nyquist criterion is satisfied and the original
+          signal can be perfectly reconstructed. Observe how increasing fs improves sample coverage.
+        </p>
+      </div>
+    </div>
+
+    <div class="experiment-body reveal">
+      <div class="glass-card controls-panel">
+        <div class="glass-card-title">Sampling Parameters</div>
+
+        <div id="banner-e2" class="nyquist-banner ok">
+          <span class="nyquist-banner-icon">✓</span>
+          <span>Nyquist satisfied</span>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Signal Frequency f</span>
+            <span class="control-value"><span id="e2-freq-val">5.0</span> Hz</span>
+          </div>
+          <input type="range" id="e2-freq" min="1" max="30" step="0.5" value="5" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Sampling Rate fs</span>
+            <span class="control-value"><span id="e2-fs-val">20.0</span> Hz</span>
+          </div>
+          <input type="range" id="e2-fs" class="ok" min="2" max="100" step="1" value="20" />
+          <div class="slider-markers"><span class="slider-marker">2</span><span class="slider-marker">100 Hz</span></div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label"><span>Waveform</span></div>
+          <select class="dsp-select" id="e2-waveform">
+            <option value="sine">Sine</option>
+            <option value="square">Square</option>
+            <option value="triangle">Triangle</option>
+          </select>
+        </div>
+
+        <div class="math-display">
+          <span class="eq-label">Nyquist Criterion</span>
+          <span class="eq">fs ≥ 2 · f<sub>max</sub></span><br>
+          <span style="color:#60748A;font-size:11px;">Nyquist Rate = 2f = <b id="e2-nyquist-rate" style="color:#00D4DC">10</b> Hz</span>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-title">Continuous Signal with Sample Points</div>
+        <div id="chart-e2" class="chart-plot" style="height:340px;"></div>
+      </div>
+
+      <div class="metrics-panel">
+        <div class="metric-card ok">
+          <div class="metric-label">Nyquist Rate</div>
+          <div class="metric-value"><span id="e2-nyquist-rate2">10</span><span class="metric-unit">Hz</span></div>
+        </div>
+        <div class="metric-card accent-cyan">
+          <div class="metric-label">Nyquist Freq</div>
+          <div class="metric-value"><span id="e2-nyquist-freq">10</span><span class="metric-unit">Hz</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Oversampling</div>
+          <div class="metric-value"><span id="e2-oversampling">4.00</span><span class="metric-unit">×</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Samples / s</div>
+          <div class="metric-value"><span id="e2-num-samples">20</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── EXPERIMENT 3: Below Nyquist ─── -->
+  <section id="exp3" class="experiment-section" data-section-id="exp3">
+    <div class="section-header reveal">
+      <span class="section-number">EXP 03</span>
+      <div>
+        <h2 class="section-title">Sampling Below Nyquist — Aliasing</h2>
+        <p class="section-description">
+          When fs &lt; 2f, aliasing occurs. The undersampled signal masquerades as a lower-frequency
+          impostor. Observe both the time-domain alias and the spectral overlap in the FFT.
+        </p>
+      </div>
+    </div>
+
+    <div class="experiment-body two-col reveal">
+      <div class="glass-card controls-panel">
+        <div class="glass-card-title">Undersampling Parameters</div>
+
+        <div id="banner-e3" class="nyquist-banner danger">
+          <span class="nyquist-banner-icon">⚡</span>
+          <span>Aliasing detected</span>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Signal Frequency f</span>
+            <span class="control-value"><span id="e3-freq-val">10.0</span> Hz</span>
+          </div>
+          <input type="range" id="e3-freq" min="2" max="50" step="0.5" value="10" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Sampling Rate fs</span>
+            <span class="control-value"><span id="e3-fs-val">8.0</span> Hz</span>
+          </div>
+          <input type="range" id="e3-fs" min="2" max="40" step="0.5" value="8" />
+        </div>
+
+        <div class="math-display">
+          <span class="eq-label">Aliasing Formula</span>
+          <span class="eq">f<sub>alias</sub> = |((f + f<sub>s</sub>/2) mod f<sub>s</sub>) − f<sub>s</sub>/2|</span>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:var(--space-md);">
+        <div class="chart-container">
+          <div class="chart-title">Time Domain — Aliased Signal</div>
+          <div id="chart-e3-main" class="chart-plot" style="height:240px;"></div>
+        </div>
+        <div class="chart-container">
+          <div class="chart-title">Frequency Domain — Spectral Overlap</div>
+          <div id="chart-e3-fft" class="chart-plot" style="height:200px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="experiment-body reveal" style="grid-template-columns:repeat(4,1fr);margin-top:var(--space-md);">
+      <div class="metric-card danger">
+        <div class="metric-label">Aliased Frequency</div>
+        <div class="metric-value"><span id="e3-aliased-freq" class="danger">2.0</span><span class="metric-unit">Hz</span></div>
+      </div>
+      <div class="metric-card warn">
+        <div class="metric-label">Nyquist Freq</div>
+        <div class="metric-value"><span id="e3-nyquist-freq">4.0</span><span class="metric-unit">Hz</span></div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Folding Freq</div>
+        <div class="metric-value"><span id="e3-fold-freq">4.0</span><span class="metric-unit">Hz</span></div>
+      </div>
+      <div class="metric-card danger">
+        <div class="metric-label">Spectral Overlap</div>
+        <div class="metric-value"><span id="e3-overlap">6.0</span><span class="metric-unit">Hz</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── EXPERIMENT 4: Spectral Replicas ─── -->
+  <section id="exp4" class="experiment-section" data-section-id="exp4">
+    <div class="section-header reveal">
+      <span class="section-number">EXP 04</span>
+      <div>
+        <h2 class="section-title">Spectral Replica Visualizer</h2>
+        <p class="section-description">
+          Sampling creates infinite periodic copies (replicas) of the baseband spectrum at multiples of fs.
+          When replicas overlap — aliasing occurs. Visualize exactly why the Nyquist criterion is necessary.
+        </p>
+      </div>
+    </div>
+
+    <div class="experiment-body two-col reveal">
+      <div class="glass-card controls-panel">
+        <div class="glass-card-title">Spectrum Parameters</div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Signal Frequency</span>
+            <span class="control-value"><span id="e4-freq1-val">5.0</span> Hz</span>
+          </div>
+          <input type="range" id="e4-freq1" min="1" max="30" step="0.5" value="5" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Sampling Rate fs</span>
+            <span class="control-value"><span id="e4-fs-val">20.0</span> Hz</span>
+          </div>
+          <input type="range" id="e4-fs" min="4" max="60" step="1" value="20" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Replica Count</span>
+            <span class="control-value">±<span id="e4-replicas-val">3</span></span>
+          </div>
+          <input type="range" id="e4-replicas" min="1" max="5" step="1" value="3" />
+        </div>
+
+        <div class="math-display">
+          <span class="eq-label">Spectral Periodicity</span>
+          <span class="eq">X<sub>s</sub>(f) = f<sub>s</sub> · Σ<sub>k</sub> X(f − k·f<sub>s</sub>)</span>
+        </div>
+
+        <div class="metric-card" style="margin-top:var(--space-sm)">
+          <div class="metric-label">Nyquist Frequency</div>
+          <div class="metric-value"><span id="e4-nyquist-freq">10.0</span><span class="metric-unit">Hz</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Spectral Overlap</div>
+          <div class="metric-value"><span id="e4-overlap" class="ok">NO</span></div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Overlap Amount</div>
+          <div class="metric-value"><span id="e4-overlap-amt">0.000</span><span class="metric-unit">Hz</span></div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-title">Spectral Replicas (k = −N to +N)</div>
+        <div id="chart-e4" class="chart-plot" style="height:400px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── EXPERIMENT 5: Sinc Reconstruction ─── -->
+  <section id="exp5" class="experiment-section" data-section-id="exp5">
+    <div class="section-header reveal">
+      <span class="section-number">EXP 05</span>
+      <div>
+        <h2 class="section-title">Sinc Reconstruction Laboratory</h2>
+        <p class="section-description">
+          Whittaker-Shannon sinc interpolation reconstructs the continuous signal from discrete samples.
+          Compare original vs. reconstructed signal side by side with live RMSE and SNR metrics.
+        </p>
+      </div>
+    </div>
+
+    <div class="experiment-body two-col reveal">
+      <div class="glass-card controls-panel">
+        <div class="glass-card-title">Reconstruction Parameters</div>
+
+        <div id="banner-e5" class="nyquist-banner ok">✓ Nyquist satisfied</div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Signal Frequency f</span>
+            <span class="control-value"><span id="e5-freq-val">5.0</span> Hz</span>
+          </div>
+          <input type="range" id="e5-freq" min="1" max="30" step="0.5" value="5" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Sampling Rate fs</span>
+            <span class="control-value"><span id="e5-fs-val">20.0</span> Hz</span>
+          </div>
+          <input type="range" id="e5-fs" min="2" max="80" step="1" value="20" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Sinc Lobes</span>
+            <span class="control-value"><span id="e5-lobes-val">8</span></span>
+          </div>
+          <input type="range" id="e5-lobes" min="2" max="20" step="1" value="8" />
+        </div>
+
+        <div class="math-display">
+          <span class="eq-label">Whittaker-Shannon</span>
+          <span class="eq">x̂(t) = Σ<sub>n</sub> x[n] · sinc(f<sub>s</sub>t − n)</span>
+        </div>
+
+        <div class="metric-card ok" style="margin-top:var(--space-sm)">
+          <div class="metric-label">RMSE</div>
+          <div class="metric-value"><span id="e5-rmse">0.000</span></div>
+        </div>
+        <div class="metric-card accent-cyan">
+          <div class="metric-label">SNR</div>
+          <div class="metric-value"><span id="e5-snr">∞</span><span class="metric-unit">dB</span></div>
+        </div>
+        <div class="metric-card ok">
+          <div class="metric-label">Fidelity</div>
+          <div class="metric-value"><span id="e5-fidelity">100.0</span><span class="metric-unit">%</span></div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:var(--space-md);">
+        <div class="chart-container">
+          <div class="chart-title">Original Signal + Samples</div>
+          <div id="chart-e5-orig" class="chart-plot" style="height:200px;"></div>
+        </div>
+        <div class="chart-container">
+          <div class="chart-title">Reconstructed Signal + Error</div>
+          <div id="chart-e5-recon" class="chart-plot" style="height:200px;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── EXPERIMENT 6: RMSE Sweep ─── -->
+  <section id="exp6" class="experiment-section" data-section-id="exp6">
+    <div class="section-header reveal">
+      <span class="section-number">EXP 06</span>
+      <div>
+        <h2 class="section-title">Reconstruction Error Sweep</h2>
+        <p class="section-description">
+          Sweep the sampling rate from sub-Nyquist to over-sampled and observe how reconstruction error
+          (RMSE) collapses precisely at fs = 2f — the Nyquist criterion made visible.
+        </p>
+      </div>
+    </div>
+
+    <div class="experiment-body two-col reveal">
+      <div class="glass-card controls-panel">
+        <div class="glass-card-title">Sweep Parameters</div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Signal Frequency</span>
+            <span class="control-value"><span id="e6-freq-val">5.0</span> Hz</span>
+          </div>
+          <input type="range" id="e6-freq" min="1" max="30" step="0.5" value="5" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Amplitude</span>
+            <span class="control-value"><span id="e6-amplitude-val">1.0</span></span>
+          </div>
+          <input type="range" id="e6-amplitude" min="0.1" max="3" step="0.1" value="1" />
+        </div>
+
+        <div class="math-display">
+          <span class="eq-label">Nyquist Rate</span>
+          <span class="eq">f<sub>N</sub> = 2f = <b id="e6-nyquist-rate" style="color:var(--accent-cyan)">10</b> Hz</span><br>
+          <span style="color:#60748A;font-size:11px;margin-top:6px;display:block;">X-axis normalized: fs / f<sub>N</sub></span>
+        </div>
+
+        <button class="btn-primary" id="e6-sweep-btn" style="width:100%;justify-content:center;">
+          ▶ Run Sweep Animation
+        </button>
+        <div class="sweep-progress">
+          <div class="sweep-progress-bar" id="e6-progress-bar"></div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-title">RMSE & SNR vs Normalized Sampling Frequency (fs / Nyquist Rate)</div>
+        <div id="chart-e6" class="chart-plot" style="height:420px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── EXPERIMENT 7: Multi-Tone ─── -->
+  <section id="exp7" class="experiment-section" data-section-id="exp7">
+    <div class="section-header reveal">
+      <span class="section-number">EXP 07</span>
+      <div>
+        <h2 class="section-title">Multi-Tone Aliasing Analysis</h2>
+        <p class="section-description">
+          Analyze how a multi-component signal with multiple frequency tones aliases under a single
+          sampling rate. Different tones alias to different frequencies — or remain clean.
+        </p>
+      </div>
+    </div>
+
+    <div class="experiment-body two-col reveal">
+      <div class="glass-card controls-panel">
+        <div class="glass-card-title">Tone Configuration</div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Sampling Rate fs</span>
+            <span class="control-value"><span id="e7-fs-val">12.0</span> Hz</span>
+          </div>
+          <input type="range" id="e7-fs" min="4" max="40" step="0.5" value="12" />
+        </div>
+
+        <div class="section-divider"><span>Tone 1 (Green)</span></div>
+        <div class="tone-row">
+          <div class="control-group" style="gap:4px">
+            <div class="control-label" style="font-size:11px">
+              f₁ <span class="control-value" style="font-size:11px"><span id="e7-f1-val">3.0</span> Hz</span>
+            </div>
+            <input type="range" id="e7-f1" min="1" max="30" step="0.5" value="3" />
+          </div>
+          <span id="e7-badge-1" class="tone-alias-badge clean">Clean</span>
+        </div>
+
+        <div class="section-divider"><span>Tone 2 (Amber)</span></div>
+        <div class="tone-row">
+          <div class="control-group" style="gap:4px">
+            <div class="control-label" style="font-size:11px">
+              f₂ <span class="control-value" style="font-size:11px"><span id="e7-f2-val">7.0</span> Hz</span>
+            </div>
+            <input type="range" id="e7-f2" min="1" max="30" step="0.5" value="7" />
+          </div>
+          <span id="e7-badge-2" class="tone-alias-badge aliased">→ 5 Hz</span>
+        </div>
+
+        <div class="section-divider"><span>Tone 3 (Violet)</span></div>
+        <div class="tone-row">
+          <div class="control-group" style="gap:4px">
+            <div class="control-label" style="font-size:11px">
+              f₃ <span class="control-value" style="font-size:11px"><span id="e7-f3-val">13.0</span> Hz</span>
+            </div>
+            <input type="range" id="e7-f3" min="1" max="30" step="0.5" value="13" />
+          </div>
+          <span id="e7-badge-3" class="tone-alias-badge aliased">→ 1 Hz</span>
+        </div>
+
+        <div class="metric-card warn" style="margin-top:var(--space-md)">
+          <div class="metric-label">Nyquist Frequency</div>
+          <div class="metric-value"><span id="e7-nyquist-freq">6.0</span><span class="metric-unit">Hz</span></div>
+        </div>
+        <div class="metric-card danger">
+          <div class="metric-label">Aliased Tones</div>
+          <div class="metric-value"><span id="e7-aliased-count">2</span><span class="metric-unit"> / 3</span></div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:var(--space-md);">
+        <div class="chart-container">
+          <div class="chart-title">Multi-Tone Time Domain</div>
+          <div id="chart-e7-time" class="chart-plot" style="height:220px;"></div>
+        </div>
+        <div class="chart-container">
+          <div class="chart-title">FFT Spectrum — Aliasing in Frequency Domain</div>
+          <div id="chart-e7-fft" class="chart-plot" style="height:220px;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── EXPERIMENT 8: Rate Comparison ─── -->
+  <section id="exp8" class="experiment-section" data-section-id="exp8">
+    <div class="section-header reveal">
+      <span class="section-number">EXP 08</span>
+      <div>
+        <h2 class="section-title">Sampling Rate Comparison</h2>
+        <p class="section-description">
+          Compare three different sampling rates side-by-side. Directly observe how below-Nyquist,
+          near-Nyquist, and over-sampled rates affect signal fidelity and aliasing.
+        </p>
+      </div>
+    </div>
+
+    <div class="experiment-body two-col reveal">
+      <div class="glass-card controls-panel">
+        <div class="glass-card-title">Signal + Rate Controls</div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Signal Frequency f</span>
+            <span class="control-value"><span id="e8-freq-val">5.0</span> Hz</span>
+          </div>
+          <input type="range" id="e8-freq" min="1" max="20" step="0.5" value="5" />
+        </div>
+
+        <div class="section-divider"><span>Rate A (Panel 1)</span></div>
+        <div class="control-group">
+          <div class="control-label">
+            <span>fs A</span>
+            <span class="control-value"><span id="e8-fsa-val">6.0</span> Hz</span>
+          </div>
+          <input type="range" id="e8-fsa" min="2" max="60" step="0.5" value="6" />
+        </div>
+
+        <div class="section-divider"><span>Rate B (Panel 2)</span></div>
+        <div class="control-group">
+          <div class="control-label">
+            <span>fs B</span>
+            <span class="control-value"><span id="e8-fsb-val">10.0</span> Hz</span>
+          </div>
+          <input type="range" id="e8-fsb" min="2" max="60" step="0.5" value="10" />
+        </div>
+
+        <div class="section-divider"><span>Rate C (Panel 3)</span></div>
+        <div class="control-group">
+          <div class="control-label">
+            <span>fs C</span>
+            <span class="control-value"><span id="e8-fsc-val">30.0</span> Hz</span>
+          </div>
+          <input type="range" id="e8-fsc" min="2" max="100" step="1" value="30" />
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:var(--space-md);">
+        <div class="comparison-grid">
+          <div class="comparison-panel">
+            <div class="comparison-label label-aliased">Rate A</div>
+            <div class="chart-container">
+              <div id="chart-e8a" style="height:180px;"></div>
+            </div>
+            <div style="display:flex;gap:var(--space-sm)">
+              <div class="metric-card" style="flex:1;padding:10px">
+                <div class="metric-label">Status</div>
+                <div class="metric-value" style="font-size:13px"><span id="e8a-status" class="danger">—</span></div>
+              </div>
+              <div class="metric-card" style="flex:1;padding:10px">
+                <div class="metric-label">Alias</div>
+                <div class="metric-value" style="font-size:13px"><span id="e8a-alias">—</span><span class="metric-unit">Hz</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="comparison-panel">
+            <div class="comparison-label label-sampled">Rate B</div>
+            <div class="chart-container">
+              <div id="chart-e8b" style="height:180px;"></div>
+            </div>
+            <div style="display:flex;gap:var(--space-sm)">
+              <div class="metric-card" style="flex:1;padding:10px">
+                <div class="metric-label">Status</div>
+                <div class="metric-value" style="font-size:13px"><span id="e8b-status">—</span></div>
+              </div>
+              <div class="metric-card" style="flex:1;padding:10px">
+                <div class="metric-label">Alias</div>
+                <div class="metric-value" style="font-size:13px"><span id="e8b-alias">—</span><span class="metric-unit">Hz</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="comparison-panel">
+            <div class="comparison-label label-recon">Rate C</div>
+            <div class="chart-container">
+              <div id="chart-e8c" style="height:180px;"></div>
+            </div>
+            <div style="display:flex;gap:var(--space-sm)">
+              <div class="metric-card" style="flex:1;padding:10px">
+                <div class="metric-label">Status</div>
+                <div class="metric-value" style="font-size:13px"><span id="e8c-status" class="ok">—</span></div>
+              </div>
+              <div class="metric-card" style="flex:1;padding:10px">
+                <div class="metric-label">Alias</div>
+                <div class="metric-value" style="font-size:13px"><span id="e8c-alias">—</span><span class="metric-unit">Hz</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── EXPERIMENT 9: Frequency Folding ─── -->
+  <section id="exp9" class="experiment-section" data-section-id="exp9">
+    <div class="section-header reveal">
+      <span class="section-number">EXP 09</span>
+      <div>
+        <h2 class="section-title">Frequency Folding Analysis</h2>
+        <p class="section-description">
+          The hero visualization. Drag the frequency slider and watch the folding diagram animate in real time.
+          Observe exactly how a signal at any frequency folds into the Nyquist zone [0, fs/2].
+        </p>
+      </div>
+    </div>
+
+    <div class="experiment-body two-col reveal">
+      <div class="glass-card controls-panel">
+        <div class="glass-card-title">Folding Parameters</div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Sampling Rate fs</span>
+            <span class="control-value"><span id="e9-fs-val">12.0</span> Hz</span>
+          </div>
+          <input type="range" id="e9-fs" min="2" max="30" step="0.5" value="12" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Input Frequency f</span>
+            <span class="control-value"><span id="e9-freq-val">5.0</span> Hz</span>
+          </div>
+          <input type="range" id="e9-freq" min="0.5" max="40" step="0.5" value="5" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Diagram Range</span>
+            <span class="control-value"><span id="e9-fmax-val">40.0</span> Hz</span>
+          </div>
+          <input type="range" id="e9-fmax" min="10" max="100" step="5" value="40" />
+        </div>
+
+        <div class="math-display" style="margin-top:var(--space-md)">
+          <span class="eq-label">Live Derivation</span>
+          <span class="eq" id="e9-fold-eq" style="font-size:10px; word-break:break-all;">
+            f_alias = |((f + fs/2) mod fs) − fs/2|
+          </span>
+        </div>
+
+        <!-- Folding path steps -->
+        <div class="glass-card-title" style="margin-top:var(--space-md)">Folding Path</div>
+        <div id="e9-fold-path" style="font-family:var(--font-mono);font-size:11px;line-height:1.8;padding:8px;background:var(--glass-bg);border-radius:var(--radius-sm);border:1px solid var(--glass-border);">
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-sm);margin-top:var(--space-sm)">
+          <div class="metric-card">
+            <div class="metric-label">Input Freq</div>
+            <div class="metric-value" style="font-size:16px"><span id="e9-input-freq">5.0</span><span class="metric-unit">Hz</span></div>
+          </div>
+          <div class="metric-card accent-cyan">
+            <div class="metric-label">Nyquist Freq</div>
+            <div class="metric-value" style="font-size:16px"><span id="e9-nyquist-freq">6.0</span><span class="metric-unit">Hz</span></div>
+          </div>
+          <div class="metric-card danger" style="grid-column:1/-1">
+            <div class="metric-label">Aliased Frequency</div>
+            <div class="metric-value"><span id="e9-alias-freq" class="ok">5.0</span><span class="metric-unit">Hz</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-title">Frequency Folding Diagram — f_alias vs Input Frequency</div>
+        <div id="chart-e9" class="chart-plot" style="height:460px;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── EXPERIMENT 10: Anti-Aliasing Filter ─── -->
+  <section id="exp10" class="experiment-section" data-section-id="exp10">
+    <div class="section-header reveal">
+      <span class="section-number">EXP 10</span>
+      <div>
+        <h2 class="section-title">Anti-Aliasing Filter Demonstration</h2>
+        <p class="section-description">
+          Demonstrate the effect of an ideal (brick-wall) low-pass anti-aliasing filter.
+          The filter is applied <em>before</em> sampling to remove all frequency components above the Nyquist frequency (fs/2), preventing spectral folding (aliasing).
+        </p>
+      </div>
+    </div>
+
+    <div class="experiment-body two-col reveal">
+      <!-- Controls -->
+      <div class="glass-card controls-panel">
+        <div class="glass-card-title">Filter &amp; Sampling Parameters</div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Signal Frequency f</span>
+            <span class="control-value"><span id="e10-freq-val">12.0</span> Hz</span>
+          </div>
+          <input type="range" id="e10-freq" min="1" max="30" step="0.5" value="12" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            <span>Sampling Rate fs</span>
+            <span class="control-value"><span id="e10-fs-val">20.0</span> Hz</span>
+          </div>
+          <input type="range" id="e10-fs" min="4" max="60" step="1" value="20" />
+        </div>
+
+        <div class="math-display" style="margin-top:var(--space-md)">
+          <span class="eq-label">Cutoff Frequency (f_c = fs / 2)</span>
+          <span class="eq">f_c = <span id="e10-cutoff">10.0</span> Hz</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr;gap:var(--space-sm);margin-top:var(--space-sm)">
+          <div class="metric-card">
+            <div class="metric-label">Filter Action</div>
+            <div class="metric-value" style="font-size:15px"><span id="e10-action">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div style="display:flex;flex-direction:column;gap:var(--space-md); flex: 1;">
+        <div class="chart-container">
+          <div class="chart-title">Unfiltered Signal &amp; Aliased Samples</div>
+          <div id="chart-e10-before" class="chart-plot" style="height:210px;"></div>
+        </div>
+        <div class="chart-container">
+          <div class="chart-title">Filtered Signal (Cutoff = fs/2) &amp; Clean Samples</div>
+          <div id="chart-e10-after" class="chart-plot" style="height:210px;"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FOOTER ─── -->
+  <footer id="app-footer">
+    <span>DSP Sampling Laboratory</span>
+    <span>·</span>
+    <span>Sampling Theorem &amp; Aliasing Effects in Discrete-Time Signal Processing</span>
+    <span>·</span>
+    <span style="color:var(--accent-cyan)">Nyquist &amp; Shannon, 1949</span>
+  </footer>
+
+</main>
+
+<!-- ─── Scripts (order matters) ─── -->
+<script src="dsp-engine.js"></script>
+<script src="visualizer.js"></script>
+<script src="experiments.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
