@@ -10,7 +10,7 @@ Built with a futuristic engineering aesthetic (dark mode, glassmorphism) and pub
 All mathematical operations are implemented from first principles in pure JavaScript using typed arrays (`Float64Array`) for optimal numerical performance:
 *   **FFT Engine**: Cooley-Tukey Radix-2 Decimation-in-Time (DIT) Fast Fourier Transform.
 *   **Ideal Reconstruction**: Whittaker-Shannon Sinc Interpolation:
-    $$\hat{x}(t) = \sum_{n=-\infty}^{\infty} x[n] \operatorname{sinc}\left(\frac{t - n T_s}{T_s}\right)$$
+    $$\hat{x}(t) = \sum_{n=-\infty}^{\infty} x[n] \text{sinc}\left(\frac{t - n T_s}{T_s}\right)$$
 *   **Aliasing Formula**: Modulo-based calculation of apparent frequency:
     $$f_{\text{alias}} = \left| \left( \left( f + \frac{f_s}{2} \right) \bmod f_s \right) - \frac{f_s}{2} \right|$$
 *   **Anti-Aliasing Filter**: Ideal brick-wall low-pass filter operating in the frequency domain via forward FFT, zeroing bins above $f_s/2$, and reconstructing via Inverse FFT (IFFT).
